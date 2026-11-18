@@ -1,0 +1,42 @@
+# --- Build y artefactos generados por CMake ---
+build/
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+*.o
+*.a
+*.so
+*.so.*
+
+# --- Archivos generados por Qt ---
+*.qm
+moc_*.cpp
+qrc_*.cpp
+ui_*.h
+*_autogen/
+.settings/
+
+# --- Archivos de editor / IDE ---
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+*.autosave
+.gedit-*
+
+# --- Sistema ---
+.DS_Store
+Thumbs.db
+
+# --- Ficheros reservados (no públicos hasta que sea necesario) ---
+credential.h
+*.desktop
+CONTEXTO.md
+Notas_sosvdm
+
+# --- Binarios y ejecutables ---
+sosvdm
+*.exe
+*.msi

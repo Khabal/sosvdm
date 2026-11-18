@@ -1,0 +1,15 @@
+<RCC>
+    <qresource prefix="/">
+        <file>icons/sosvdm.png</file>
+        <file>icons/prev.svg</file>
+        <file>icons/next.svg</file>
+        <file>icons/zoom-in.svg</file>
+        <file>icons/zoom-out.svg</file>
+        <file>icons/zoom-fit.svg</file>
+        <file>icons/rotate-left.svg</file>
+        <file>icons/rotate-right.svg</file>
+        <file>icons/metadata.svg</file>
+        <file>icons/fullscreen.svg</file>
+        <file>icons/slideshow.svg</file>
+    </qresource>
+</RCC>
