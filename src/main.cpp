@@ -10,33 +10,32 @@
 //   6. Crear y mostrar la ventana principal.
 // ============================================================================
 
+#include "extractormetadatos.h"
+#include "ventanaprincipal.h"
+
 #include <QApplication>
 #include <QCommandLineOption>
 #include <QCommandLineParser>
 #include <QDebug>
 #include <QFileInfo>
-
-#include "extractormetadatos.h"
-#include "ventanaprincipal.h"
-
-#include <cstdlib>   // unsetenv()
-#include <expected>
-#include <iostream>
-#include <string>
-
 #include <QIcon>
 #include <QLibraryInfo>
 #include <QLocale>
 #include <QTranslator>
 
+#include <cstdlib> // unsetenv()
+#include <expected>
+#include <iostream>
+#include <string>
+
 namespace {
 
 // Estructura que encapsula las opciones analizadas de la línea de comandos.
 struct OpcionesTerminal {
-    QString rutaImagen;                  // Ruta a la imagen a cargar (opcional).
-    bool    soloMetadatos = false;       // Modo terminal: solo metadatos.
-    bool    detallado     = false;       // Salida detallada.
-    bool    segarroAmeGo  = false;       // Opción de compatibilidad extendida.
+    QString rutaImagen;         // Ruta a la imagen a cargar (opcional).
+    bool soloMetadatos = false; // Modo terminal: solo metadatos.
+    bool detallado = false;     // Salida detallada.
+    bool segarroAmeGo = false;  // Opción de compatibilidad extendida.
 };
 
 // Analiza los argumentos y rellena la estructura OpcionesTerminal.
@@ -49,13 +48,11 @@ struct OpcionesTerminal {
 //
 // Devuelve std::nullopt si el usuario pidió ayuda/versión (QCommandLineParser
 // ya se encarga de mostrar el texto y salir) o si hubo un error.
-std::optional<OpcionesTerminal> analizarLineaComandos(const QStringList &argumentos)
-{
+std::optional<OpcionesTerminal> analizarLineaComandos(const QStringList &argumentos) {
     QCommandLineParser analizador;
     analizador.setApplicationDescription(
-        QCoreApplication::translate("main",
-            "Visor imágenes con extracción de metadatos.\n"
-            "Nada más que ver por aquí."));
+        QCoreApplication::translate("main", "Visor imágenes con extracción de metadatos.\n"
+                                            "Nada más que ver por aquí."));
 
     // Definimos las opciones que acepta el programa.
     const QCommandLineOption opcionMetadatos(
@@ -71,18 +68,15 @@ std::optional<OpcionesTerminal> analizarLineaComandos(const QStringList &argumen
 
     // Añadimos un argumento posicional: la ruta de la imagen.
     analizador.addPositionalArgument(
-        "imagen",
-        QCoreApplication::translate("main", "Ruta al archivo de imagen."),
-        "[imagen]");
+        "imagen", QCoreApplication::translate("main", "Ruta al archivo de imagen."), "[imagen]");
 
     analizador.addHelpOption();
     analizador.addVersionOption();
 
     // Opción reservada. No aparece en --help. Reservada para uso interno
     // y comprobaciones de compatibilidad.
-    QCommandLineOption opcionSegarro(
-        QStringList{"segarro-amego"},
-        QCoreApplication::translate("main", "Opción reservada."));
+    QCommandLineOption opcionSegarro(QStringList{"segarro-amego"},
+                                     QCoreApplication::translate("main", "Opción reservada."));
     opcionSegarro.setFlags(QCommandLineOption::HiddenFromHelp);
     analizador.addOption(opcionSegarro);
 
@@ -93,9 +87,9 @@ std::optional<OpcionesTerminal> analizarLineaComandos(const QStringList &argumen
 
     OpcionesTerminal opciones;
 
-    opciones.segarroAmeGo  = analizador.isSet(opcionSegarro);
+    opciones.segarroAmeGo = analizador.isSet(opcionSegarro);
     opciones.soloMetadatos = analizador.isSet(opcionMetadatos);
-    opciones.detallado     = analizador.isSet(opcionDetallado);
+    opciones.detallado = analizador.isSet(opcionDetallado);
 
     const QStringList posicionales = analizador.positionalArguments();
     if (!posicionales.isEmpty()) {
@@ -123,33 +117,29 @@ std::optional<OpcionesTerminal> analizarLineaComandos(const QStringList &argumen
  * Se instala DESPUÉS de traductorQt para que Qt lo consulte primero
  * (los traductores se buscan en orden inverso al de instalación).
  */
-class TraductorAyudaLineaComandos : public QTranslator
-{
+class TraductorAyudaLineaComandos : public QTranslator {
 public:
     using QTranslator::QTranslator;
 
-    QString translate(const char *contexto,
-                      const char *textoFuente,
-                      const char *desambiguacion = nullptr,
-                      int n = -1) const override
-    {
+    QString translate(const char *contexto, const char *textoFuente,
+                      const char *desambiguacion = nullptr, int n = -1) const override {
         Q_UNUSED(desambiguacion);
         Q_UNUSED(n);
 
         if (qstrcmp(contexto, "QCommandLineParser") == 0) {
             if (qstrcmp(textoFuente, "Displays help on commandline options.") == 0) {
-                return QStringLiteral(
-                    "Muestra la ayuda sobre las opciones de línea de comandos.");
+                return QStringLiteral("Muestra la ayuda sobre las opciones de línea de comandos.");
             }
             if (qstrcmp(textoFuente, "Displays help, including generic Qt options.") == 0) {
-                return QStringLiteral(
-                    "Muestra la ayuda, incluidas las opciones genéricas de Qt.");
+                return QStringLiteral("Muestra la ayuda, incluidas las opciones genéricas de Qt.");
             }
         }
         return {};
     }
 
-    bool isEmpty() const override { return false; }
+    bool isEmpty() const override {
+        return false;
+    }
 };
 
 } // namespace
@@ -157,8 +147,7 @@ public:
 // ============================================================================
 // Punto de entrada
 // ============================================================================
-int main(int argc, char *argv[])
-{
+int main(int argc, char *argv[]) {
     // --- 1. Capturar los argumentos originales ANTES de tocar nada ---
     // QApplication se va a construir con argv saneado, así que aquí es el
     // único punto donde podemos conservar los argumentos reales del usuario.
@@ -189,7 +178,7 @@ int main(int argc, char *argv[])
     // opciones que el usuario haya pasado se gestionan explícitamente a
     // través de nuestro QCommandLineParser sobre argumentosOriginales.
     int argcLimpio = 1;
-    char *argvLimpio[] = { argv[0], nullptr };
+    char *argvLimpio[] = {argv[0], nullptr};
     QApplication aplicacion(argcLimpio, argvLimpio);
 
     // En Wayland, el icono se resuelve por el nombre del .desktop, no por
@@ -237,14 +226,14 @@ int main(int argc, char *argv[])
     QApplication::setStyle("Fusion"); // Base neutra para el stylesheet.
 
     QPalette paletaOscura;
-    paletaOscura.setColor(QPalette::Window,          QColor(53, 53, 53));
-    paletaOscura.setColor(QPalette::WindowText,      Qt::white);
-    paletaOscura.setColor(QPalette::Base,            QColor(35, 35, 35));
-    paletaOscura.setColor(QPalette::AlternateBase,   QColor(45, 45, 45));
-    paletaOscura.setColor(QPalette::Text,            Qt::white);
-    paletaOscura.setColor(QPalette::Button,          QColor(53, 53, 53));
-    paletaOscura.setColor(QPalette::ButtonText,      Qt::white);
-    paletaOscura.setColor(QPalette::Highlight,       QColor(42, 130, 218));
+    paletaOscura.setColor(QPalette::Window, QColor(53, 53, 53));
+    paletaOscura.setColor(QPalette::WindowText, Qt::white);
+    paletaOscura.setColor(QPalette::Base, QColor(35, 35, 35));
+    paletaOscura.setColor(QPalette::AlternateBase, QColor(45, 45, 45));
+    paletaOscura.setColor(QPalette::Text, Qt::white);
+    paletaOscura.setColor(QPalette::Button, QColor(53, 53, 53));
+    paletaOscura.setColor(QPalette::ButtonText, Qt::white);
+    paletaOscura.setColor(QPalette::Highlight, QColor(42, 130, 218));
     paletaOscura.setColor(QPalette::HighlightedText, Qt::black);
     QApplication::setPalette(paletaOscura);
 

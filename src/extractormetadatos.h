@@ -31,29 +31,27 @@ enum class EstadoMetadatos : std::uint8_t {
  */
 struct ResultadoMetadatos {
     EstadoMetadatos estado = EstadoMetadatos::SinMetadatos;
-    std::vector<std::pair<std::string,
-        std::vector<std::pair<std::string, std::string>>>> datos;
+    std::vector<std::pair<std::string, std::vector<std::pair<std::string, std::string>>>> datos;
 };
 
 /**
  * @brief Extrae metadatos EXIF, IPTC y XMP de archivos de imagen.
  */
-class ExtractorMetadatos
-{
+class ExtractorMetadatos {
     Q_DECLARE_TR_FUNCTIONS(ExtractorMetadatos)
 
 public:
-    using Entrada       = std::pair<std::string, std::string>;
+    using Entrada = std::pair<std::string, std::string>;
     using ListaEntradas = std::vector<Entrada>;
     using MapaMetadatos = std::vector<std::pair<std::string, ListaEntradas>>;
 
-    ExtractorMetadatos()  = default;
+    ExtractorMetadatos() = default;
     ~ExtractorMetadatos() = default;
 
-    ExtractorMetadatos(const ExtractorMetadatos &)            = delete;
+    ExtractorMetadatos(const ExtractorMetadatos &) = delete;
     ExtractorMetadatos &operator=(const ExtractorMetadatos &) = delete;
-    ExtractorMetadatos(ExtractorMetadatos &&)                 = default;
-    ExtractorMetadatos &operator=(ExtractorMetadatos &&)      = default;
+    ExtractorMetadatos(ExtractorMetadatos &&) = default;
+    ExtractorMetadatos &operator=(ExtractorMetadatos &&) = default;
 
     /**
      * @brief Extrae los metadatos de una imagen.
@@ -65,8 +63,7 @@ public:
      * falla por una razón no clasificable. Los casos "formato no soportado"
      * y "sin metadatos" NO son errores: se comunican mediante `estado`.
      */
-    [[nodiscard]] std::expected<ResultadoMetadatos, QString>
-    extraer(const QString &rutaArchivo);
+    [[nodiscard]] std::expected<ResultadoMetadatos, QString> extraer(const QString &rutaArchivo);
 
     [[nodiscard]] static QString formatearComoTexto(const MapaMetadatos &metadatos);
 

@@ -6,11 +6,9 @@
 #include <QFileInfo>
 
 #include <opencv2/imgcodecs.hpp>
-#include <opencv2/imgproc.hpp>   // cv::cvtColor vive aquí
+#include <opencv2/imgproc.hpp> // cv::cvtColor vive aquí
 
-std::expected<cv::Mat, QString>
-ManejadorImagen::cargar(const QString &rutaArchivo)
-{
+std::expected<cv::Mat, QString> ManejadorImagen::cargar(const QString &rutaArchivo) {
     // Validación temprana: que el archivo exista y sea legible.
     const QFileInfo infoArchivo(rutaArchivo);
     if (!infoArchivo.exists() || !infoArchivo.isFile()) {
@@ -34,9 +32,7 @@ ManejadorImagen::cargar(const QString &rutaArchivo)
     return m_imagenActual;
 }
 
-std::expected<QImage, QString>
-ManejadorImagen::cargarComoImagenQ(const QString &rutaArchivo)
-{
+std::expected<QImage, QString> ManejadorImagen::cargarComoImagenQ(const QString &rutaArchivo) {
     auto resultado = cargar(rutaArchivo);
     if (!resultado.has_value()) {
         return std::unexpected(resultado.error());
@@ -53,61 +49,66 @@ ManejadorImagen::cargarComoImagenQ(const QString &rutaArchivo)
     // construimos el QImage. Así el formato es predecible.
     cv::Mat rgb;
     switch (matriz.channels()) {
-        case 1:
-            cv::cvtColor(matriz, rgb, cv::COLOR_GRAY2RGB);
-            break;
-        case 3:
-            cv::cvtColor(matriz, rgb, cv::COLOR_BGR2RGB);
-            break;
-        case 4:
-            cv::cvtColor(matriz, rgb, cv::COLOR_BGRA2RGBA);
-            break;
-        default:
-            return std::unexpected(tr("Número de canales no soportado: %1")
-                                       .arg(matriz.channels()));
+    case 1:
+        cv::cvtColor(matriz, rgb, cv::COLOR_GRAY2RGB);
+        break;
+    case 3:
+        cv::cvtColor(matriz, rgb, cv::COLOR_BGR2RGB);
+        break;
+    case 4:
+        cv::cvtColor(matriz, rgb, cv::COLOR_BGRA2RGBA);
+        break;
+    default:
+        return std::unexpected(tr("Número de canales no soportado: %1").arg(matriz.channels()));
     }
 
     // Importante: QImage NO copia los datos del buffer. Hay que asegurarse
     // de que 'rgb' siga vivo mientras se use el QImage. Como 'rgb' es local,
     // hacemos una copia con .copy() para que QImage gestione su propia memoria.
-    QImage imagenQ(rgb.data,
-                   rgb.cols,
-                   rgb.rows,
-                   static_cast<int>(rgb.step),
+    QImage imagenQ(rgb.data, rgb.cols, rgb.rows, static_cast<int>(rgb.step),
                    rgb.channels() == 4 ? QImage::Format_RGBA8888 : QImage::Format_RGB888);
 
     return imagenQ.copy(); // Copia profunda: seguro para devolver por valor.
 }
 
-const QStringList &ManejadorImagen::extensionesSoportadas()
-{
+const QStringList &ManejadorImagen::extensionesSoportadas() {
     // Orden agrupado por familia de formato, para que los filtros
     // del QFileDialog salgan legibles.
     static const QStringList extensiones = {
         // JPEG
-        "*.jpg", "*.jpeg", "*.jpe",
+        "*.jpg",
+        "*.jpeg",
+        "*.jpe",
         // PNG
         "*.png",
         // TIFF
-        "*.tif", "*.tiff",
+        "*.tif",
+        "*.tiff",
         // WebP
         "*.webp",
         // JPEG 2000
         "*.jp2",
         // Windows Bitmap
-        "*.bmp", "*.dib",
+        "*.bmp",
+        "*.dib",
         // GIF
         "*.gif",
         // Targa
         "*.tga",
         // Netpbm
-        "*.pbm", "*.pgm", "*.ppm", "*.pnm", "*.pxm",
+        "*.pbm",
+        "*.pgm",
+        "*.ppm",
+        "*.pnm",
+        "*.pxm",
         // Radiance HDR
-        "*.hdr", "*.pic",
+        "*.hdr",
+        "*.pic",
         // OpenEXR
         "*.exr",
         // Sun Raster
-        "*.sr", "*.ras",
+        "*.sr",
+        "*.ras",
         // PFM
         "*.pfm",
     };

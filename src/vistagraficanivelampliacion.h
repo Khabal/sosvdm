@@ -8,16 +8,16 @@
 /**
  * @brief QGraphicsView que convierte la rueda del ratón en una petición de nivel de ampliación.
  *
- * No aplica el nivel de ampliación directamente: emite `pasoNivelAmpliacionSolicitado(variacionPorcentaje)`
- * para que la ventana decida cómo aplicar el cambio, manteniendo la lógica
- * de nivel de ampliación en un único sitio (VentanaPrincipal::aplicarPasoNivelAmpliacion).
+ * No aplica el nivel de ampliación directamente: emite
+ * `pasoNivelAmpliacionSolicitado(variacionPorcentaje)` para que la ventana decida cómo aplicar el
+ * cambio, manteniendo la lógica de nivel de ampliación en un único sitio
+ * (VentanaPrincipal::aplicarPasoNivelAmpliacion).
  *
  * El scroll vertical normal de la rueda se desactiva para evitar que la vista
  * se desplace al mismo tiempo que se cambia el nivel de ampliación. El desplazamiento
  * sigue disponible arrastrando con el botón izquierdo (ScrollHandDrag).
  */
-class VistaGraficaNivelAmpliacion : public QGraphicsView
-{
+class VistaGraficaNivelAmpliacion : public QGraphicsView {
     Q_OBJECT
 
 public:

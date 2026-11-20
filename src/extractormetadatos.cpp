@@ -23,31 +23,41 @@ namespace {
  * .jpg) se resuelve solo, porque Exiv2 abrirá el contenido real y
  * encontrará los metadatos si existen.
  */
-bool formatoSoportaMetadatos(const QString &rutaArchivo)
-{
+bool formatoSoportaMetadatos(const QString &rutaArchivo) {
     // Formatos que admiten metadatos según la documentación de Exiv2.
     // El resto (BMP, GIF, TGA, Netpbm, HDR, EXR, Sun Raster, PFM)
     // se reconocen pero no pueden contener EXIF/IPTC/XMP.
     static const QStringList soportados = {
         // Formatos comunes con soporte completo.
-        "jpg", "jpeg", "jpe",
+        "jpg",
+        "jpeg",
+        "jpe",
         "png",
-        "tif", "tiff",
+        "tif",
+        "tiff",
         "webp",
         "jp2",
         "psd",
         // Formatos RAW de cámaras (soporte total o parcial).
-        "cr2", "crw", "nef", "dng", "arw", "orf",
-        "pef", "rw2", "mrw", "raf", "sr2", "srw",
+        "cr2",
+        "crw",
+        "nef",
+        "dng",
+        "arw",
+        "orf",
+        "pef",
+        "rw2",
+        "mrw",
+        "raf",
+        "sr2",
+        "srw",
     };
     return soportados.contains(QFileInfo(rutaArchivo).suffix().toLower());
 }
 
 } // namespace
 
-std::expected<ResultadoMetadatos, QString>
-ExtractorMetadatos::extraer(const QString &rutaArchivo)
-{
+std::expected<ResultadoMetadatos, QString> ExtractorMetadatos::extraer(const QString &rutaArchivo) {
     const QFileInfo infoArchivo(rutaArchivo);
     if (!infoArchivo.exists() || !infoArchivo.isFile()) {
         return std::unexpected(tr("El archivo no existe o no es un fichero regular."));
@@ -115,39 +125,35 @@ ExtractorMetadatos::extraer(const QString &rutaArchivo)
             resultado.estado = EstadoMetadatos::FormatoNoSoportado;
             return resultado;
         }
-        return std::unexpected(tr("Error de Exiv2: %1")
-                                   .arg(QString::fromUtf8(excepcion.what())));
+        return std::unexpected(tr("Error de Exiv2: %1").arg(QString::fromUtf8(excepcion.what())));
     } catch (const std::exception &excepcion) {
-        return std::unexpected(tr("Error inesperado: %1")
-                                   .arg(QString::fromUtf8(excepcion.what())));
+        return std::unexpected(tr("Error inesperado: %1").arg(QString::fromUtf8(excepcion.what())));
     }
 }
 
-QString ExtractorMetadatos::formatearComoTexto(const MapaMetadatos &metadatos)
-{
+QString ExtractorMetadatos::formatearComoTexto(const MapaMetadatos &metadatos) {
     QString salida;
     QTextStream flujo(&salida);
 
     for (const auto &[categoria, entradas] : metadatos) {
         flujo << '[' << QString::fromStdString(categoria) << "]\n";
         for (const auto &[clave, valor] : entradas) {
-            flujo << "  " << QString::fromStdString(clave)
-                  << " = "  << QString::fromStdString(valor) << '\n';
+            flujo << "  " << QString::fromStdString(clave) << " = " << QString::fromStdString(valor)
+                  << '\n';
         }
         flujo << '\n';
     }
     return salida;
 }
 
-std::expected<void, QString>
-ExtractorMetadatos::escribirEnArchivo(const MapaMetadatos &metadatos, const QString &rutaArchivo)
-{
+std::expected<void, QString> ExtractorMetadatos::escribirEnArchivo(const MapaMetadatos &metadatos,
+                                                                   const QString &rutaArchivo) {
     // QFile con WriteOnly|Text|Truncate. QIODevice::Text normaliza los
     // finales de línea según la plataforma (relevante en la fase Windows).
     QFile archivo(rutaArchivo);
     if (!archivo.open(QIODevice::WriteOnly | QIODevice::Text | QIODevice::Truncate)) {
-        return std::unexpected(tr("No se pudo abrir el archivo para escritura: %1")
-                                   .arg(archivo.errorString()));
+        return std::unexpected(
+            tr("No se pudo abrir el archivo para escritura: %1").arg(archivo.errorString()));
     }
 
     QTextStream flujo(&archivo);
@@ -157,21 +163,18 @@ ExtractorMetadatos::escribirEnArchivo(const MapaMetadatos &metadatos, const QStr
     flujo << formatearComoTexto(metadatos);
 
     if (flujo.status() != QTextStream::Ok) {
-        return std::unexpected(tr("Error al escribir en el archivo: %1")
-                                   .arg(rutaArchivo));
+        return std::unexpected(tr("Error al escribir en el archivo: %1").arg(rutaArchivo));
     }
 
     archivo.close();
     if (archivo.error() != QFileDevice::NoError) {
-        return std::unexpected(tr("Error al cerrar el archivo: %1")
-                                   .arg(archivo.errorString()));
+        return std::unexpected(tr("Error al cerrar el archivo: %1").arg(archivo.errorString()));
     }
 
     return {};
 }
 
-void ExtractorMetadatos::imprimirEnSalidaEstandar(const MapaMetadatos &metadatos)
-{
+void ExtractorMetadatos::imprimirEnSalidaEstandar(const MapaMetadatos &metadatos) {
     // QTextStream sobre stdout gestiona la codificación correctamente en
     // todas las plataformas, incluyendo Windows con consolas no UTF-8.
     QTextStream salida(stdout);

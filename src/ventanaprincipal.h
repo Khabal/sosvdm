@@ -3,6 +3,8 @@
 // ============================================================================
 #pragma once
 
+#include "extractormetadatos.h"
+
 #include <QAction>
 #include <QApplication>
 #include <QDir>
@@ -15,10 +17,10 @@
 
 #include <memory>
 
-#include "extractormetadatos.h"
-
 QT_BEGIN_NAMESPACE
-namespace Ui { class VentanaPrincipal; }
+namespace Ui {
+class VentanaPrincipal;
+}
 QT_END_NAMESPACE
 
 class ManejadorImagen;
@@ -35,8 +37,7 @@ class ManejadorImagen;
  * vive en sus propias clases. VentanaPrincipal actúa como orquestador y capa de
  * presentación.
  */
-class VentanaPrincipal : public QMainWindow
-{
+class VentanaPrincipal : public QMainWindow {
     Q_OBJECT
 
 public:
@@ -64,19 +65,19 @@ private:
     // --- Miembros ---
     std::unique_ptr<Ui::VentanaPrincipal> m_interfaz;
 
-    QGraphicsScene      *m_escena          = nullptr;
-    QGraphicsPixmapItem *m_elementoPixmap  = nullptr;
-    QTimer              *m_temporizadorPresentacion = nullptr;
+    QGraphicsScene *m_escena = nullptr;
+    QGraphicsPixmapItem *m_elementoPixmap = nullptr;
+    QTimer *m_temporizadorPresentacion = nullptr;
 
-    std::unique_ptr<ManejadorImagen>    m_manejadorImagen;
+    std::unique_ptr<ManejadorImagen> m_manejadorImagen;
     std::unique_ptr<ExtractorMetadatos> m_extractorMetadatos;
 
     ExtractorMetadatos::MapaMetadatos m_metadatosActuales;
-    EstadoMetadatos                   m_estadoMetadatosActuales = EstadoMetadatos::SinMetadatos;
+    EstadoMetadatos m_estadoMetadatosActuales = EstadoMetadatos::SinMetadatos;
 
-    QString     m_rutaArchivoActual;
+    QString m_rutaArchivoActual;
     QStringList m_imagenesDirectorio;
-    int         m_indiceActual = -1;
+    int m_indiceActual = -1;
 
     QLabel *m_etiquetaNivelAmpliacion = nullptr;
 
@@ -85,8 +86,8 @@ private:
     static constexpr double kNivelAmpliacionMaximo = 2000.0;
 
     // Pasos de nivel de ampliación, en puntos porcentuales.
-    static constexpr int kPasoNivelAmpliacionRueda  = 2;
-    static constexpr int kPasoNivelAmpliacionBoton  = 5;
+    static constexpr int kPasoNivelAmpliacionRueda = 2;
+    static constexpr int kPasoNivelAmpliacionBoton = 5;
 
 private slots: // NOLINT(readability-redundant-access-specifiers)
     // --- Menú Archivo ---

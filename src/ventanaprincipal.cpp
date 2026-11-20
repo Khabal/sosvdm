@@ -2,13 +2,11 @@
 // ventanaprincipal.cpp - Implementación de la ventana principal
 // ============================================================================
 #include "ventanaprincipal.h"
-#include "ui_ventanaprincipal.h"
 
 #include "extractormetadatos.h"
 #include "manejadorimagen.h"
+#include "ui_ventanaprincipal.h"
 #include "vistagraficanivelampliacion.h"
-
-#include <algorithm>
 
 #include <QApplication>
 #include <QFile>
@@ -17,17 +15,19 @@
 #include <QGraphicsView>
 #include <QLabel>
 #include <QMessageBox>
+#include <QPainter>
 #include <QPrintDialog>
 #include <QPrinter>
-#include <QTextDocument>
-#include <QPainter>
 #include <QShortcut>
 #include <QSplitter>
 #include <QStatusBar>
+#include <QTextDocument>
 #include <QTextStream>
 #include <QToolBar>
 #include <QTransform>
 #include <QTreeWidgetItem>
+
+#include <algorithm>
 
 // ============================================================================
 // Constructor / Destructor
@@ -37,8 +37,7 @@ VentanaPrincipal::VentanaPrincipal(QWidget *padre)
     : QMainWindow(padre)
     , m_interfaz(std::make_unique<Ui::VentanaPrincipal>())
     , m_manejadorImagen(std::make_unique<ManejadorImagen>())
-    , m_extractorMetadatos(std::make_unique<ExtractorMetadatos>())
-{
+    , m_extractorMetadatos(std::make_unique<ExtractorMetadatos>()) {
     m_interfaz->setupUi(this);
 
     configurarInterfaz();
@@ -53,8 +52,7 @@ VentanaPrincipal::~VentanaPrincipal() = default;
 // Configuración inicial
 // ============================================================================
 
-void VentanaPrincipal::configurarInterfaz()
-{
+void VentanaPrincipal::configurarInterfaz() {
     setWindowTitle(QApplication::applicationDisplayName());
 
     // --- Árbol de metadatos ---
@@ -88,7 +86,8 @@ void VentanaPrincipal::configurarInterfaz()
     // --- Timer del modo presentación ---
     m_temporizadorPresentacion = new QTimer(this);
     m_temporizadorPresentacion->setInterval(5000);
-    connect(m_temporizadorPresentacion, &QTimer::timeout, this, &VentanaPrincipal::alSiguienteDiapositiva);
+    connect(m_temporizadorPresentacion, &QTimer::timeout, this,
+            &VentanaPrincipal::alSiguienteDiapositiva);
 
     // --- Configuración de iconos de las QAction ---
     // Si el tema activo tiene el icono, se usa; si no, se recurre al
@@ -102,16 +101,21 @@ void VentanaPrincipal::configurarInterfaz()
         return icono;
     };
 
-    m_interfaz->accionImagenAnterior ->setIcon(cargarIcono("go-previous",         ":/icons/prev.svg"));
-    m_interfaz->accionSiguienteImagen ->setIcon(cargarIcono("go-next",             ":/icons/next.svg"));
-    m_interfaz->accionAcercar        ->setIcon(cargarIcono("zoom-in",             ":/icons/zoom-in.svg"));
-    m_interfaz->accionAlejar         ->setIcon(cargarIcono("zoom-out",            ":/icons/zoom-out.svg"));
-    m_interfaz->accionAjustarVentana ->setIcon(cargarIcono("zoom-fit-best",       ":/icons/zoom-fit.svg"));
-    m_interfaz->accionRotarIzquierda ->setIcon(cargarIcono("object-rotate-left",  ":/icons/rotate-left.svg"));
-    m_interfaz->accionRotarDerecha   ->setIcon(cargarIcono("object-rotate-right", ":/icons/rotate-right.svg"));
-    m_interfaz->accionAlternarMetadatos->setIcon(cargarIcono("dialog-information",  ":/icons/metadata.svg"));
-    m_interfaz->accionPantallaCompleta->setIcon(cargarIcono("view-fullscreen",     ":/icons/fullscreen.svg"));
-    m_interfaz->accionPresentacion   ->setIcon(cargarIcono("media-playback-start",":/icons/slideshow.svg"));
+    m_interfaz->accionImagenAnterior->setIcon(cargarIcono("go-previous", ":/icons/prev.svg"));
+    m_interfaz->accionSiguienteImagen->setIcon(cargarIcono("go-next", ":/icons/next.svg"));
+    m_interfaz->accionAcercar->setIcon(cargarIcono("zoom-in", ":/icons/zoom-in.svg"));
+    m_interfaz->accionAlejar->setIcon(cargarIcono("zoom-out", ":/icons/zoom-out.svg"));
+    m_interfaz->accionAjustarVentana->setIcon(cargarIcono("zoom-fit-best", ":/icons/zoom-fit.svg"));
+    m_interfaz->accionRotarIzquierda->setIcon(
+        cargarIcono("object-rotate-left", ":/icons/rotate-left.svg"));
+    m_interfaz->accionRotarDerecha->setIcon(
+        cargarIcono("object-rotate-right", ":/icons/rotate-right.svg"));
+    m_interfaz->accionAlternarMetadatos->setIcon(
+        cargarIcono("dialog-information", ":/icons/metadata.svg"));
+    m_interfaz->accionPantallaCompleta->setIcon(
+        cargarIcono("view-fullscreen", ":/icons/fullscreen.svg"));
+    m_interfaz->accionPresentacion->setIcon(
+        cargarIcono("media-playback-start", ":/icons/slideshow.svg"));
 
     // --- Construcción de la barra de herramientas ---
     // Se reutilizan las mismas QAction del menú: una sola fuente de verdad.
@@ -139,37 +143,48 @@ void VentanaPrincipal::configurarInterfaz()
     m_interfaz->barraHerramientas->addAction(m_interfaz->accionAlternarMetadatos);
 }
 
-void VentanaPrincipal::configurarConexiones()
-{
+void VentanaPrincipal::configurarConexiones() {
     // --- Menú Archivo ---
-    connect(m_interfaz->accionAbrir,           &QAction::triggered, this, &VentanaPrincipal::alAbrirArchivo);
-    connect(m_interfaz->accionCerrar,          &QAction::triggered, this, &VentanaPrincipal::alCerrarImagen);
-    connect(m_interfaz->accionSalir,           &QAction::triggered, this, &VentanaPrincipal::alSalir);
-    connect(m_interfaz->accionImprimirImagen,  &QAction::triggered, this, &VentanaPrincipal::alImprimirImagen);
-    connect(m_interfaz->accionImprimirMetadatos, &QAction::triggered, this, &VentanaPrincipal::alImprimirMetadatos);
-    connect(m_interfaz->accionExportarMetadatos, &QAction::triggered, this, &VentanaPrincipal::alExportarMetadatos);
+    connect(m_interfaz->accionAbrir, &QAction::triggered, this, &VentanaPrincipal::alAbrirArchivo);
+    connect(m_interfaz->accionCerrar, &QAction::triggered, this, &VentanaPrincipal::alCerrarImagen);
+    connect(m_interfaz->accionSalir, &QAction::triggered, this, &VentanaPrincipal::alSalir);
+    connect(m_interfaz->accionImprimirImagen, &QAction::triggered, this,
+            &VentanaPrincipal::alImprimirImagen);
+    connect(m_interfaz->accionImprimirMetadatos, &QAction::triggered, this,
+            &VentanaPrincipal::alImprimirMetadatos);
+    connect(m_interfaz->accionExportarMetadatos, &QAction::triggered, this,
+            &VentanaPrincipal::alExportarMetadatos);
 
     // --- Menú Visualización ---
-    connect(m_interfaz->accionSiguienteImagen, &QAction::triggered, this, &VentanaPrincipal::alSiguienteImagen);
-    connect(m_interfaz->accionImagenAnterior,  &QAction::triggered, this, &VentanaPrincipal::alImagenAnterior);
-    connect(m_interfaz->accionAcercar,         &QAction::triggered, this, &VentanaPrincipal::alAcercar);
-    connect(m_interfaz->accionAlejar,          &QAction::triggered, this, &VentanaPrincipal::alAlejar);
-    connect(m_interfaz->accionAjustarVentana,  &QAction::triggered, this, &VentanaPrincipal::alAjustarVentana);
-    connect(m_interfaz->accionRotarDerecha,    &QAction::triggered, this, &VentanaPrincipal::alRotarDerecha);
-    connect(m_interfaz->accionRotarIzquierda,  &QAction::triggered, this, &VentanaPrincipal::alRotarIzquierda);
-    connect(m_interfaz->accionPantallaCompleta, &QAction::triggered, this, &VentanaPrincipal::alAlternarPantallaCompleta);
-    connect(m_interfaz->accionPresentacion,    &QAction::toggled,   this, &VentanaPrincipal::alAlternarModoPresentacion);
-    connect(m_interfaz->accionAlternarMetadatos, &QAction::toggled,   this, &VentanaPrincipal::alAlternarPanelMetadatos);
+    connect(m_interfaz->accionSiguienteImagen, &QAction::triggered, this,
+            &VentanaPrincipal::alSiguienteImagen);
+    connect(m_interfaz->accionImagenAnterior, &QAction::triggered, this,
+            &VentanaPrincipal::alImagenAnterior);
+    connect(m_interfaz->accionAcercar, &QAction::triggered, this, &VentanaPrincipal::alAcercar);
+    connect(m_interfaz->accionAlejar, &QAction::triggered, this, &VentanaPrincipal::alAlejar);
+    connect(m_interfaz->accionAjustarVentana, &QAction::triggered, this,
+            &VentanaPrincipal::alAjustarVentana);
+    connect(m_interfaz->accionRotarDerecha, &QAction::triggered, this,
+            &VentanaPrincipal::alRotarDerecha);
+    connect(m_interfaz->accionRotarIzquierda, &QAction::triggered, this,
+            &VentanaPrincipal::alRotarIzquierda);
+    connect(m_interfaz->accionPantallaCompleta, &QAction::triggered, this,
+            &VentanaPrincipal::alAlternarPantallaCompleta);
+    connect(m_interfaz->accionPresentacion, &QAction::toggled, this,
+            &VentanaPrincipal::alAlternarModoPresentacion);
+    connect(m_interfaz->accionAlternarMetadatos, &QAction::toggled, this,
+            &VentanaPrincipal::alAlternarPanelMetadatos);
 
     // --- Menú Ayuda ---
-    connect(m_interfaz->accionAtajos,    &QAction::triggered, this, &VentanaPrincipal::alMostrarAtajos);
-    connect(m_interfaz->accionAcercaDe,  &QAction::triggered, this, &VentanaPrincipal::alAcercaDe);
+    connect(m_interfaz->accionAtajos, &QAction::triggered, this,
+            &VentanaPrincipal::alMostrarAtajos);
+    connect(m_interfaz->accionAcercaDe, &QAction::triggered, this, &VentanaPrincipal::alAcercaDe);
 
     // --- Atajos sin entrada en menú ---
 
     // Escape sale de pantalla completa o presentación.
-    connect(new QShortcut(QKeySequence(Qt::Key_Escape), this),
-            &QShortcut::activated, this, &VentanaPrincipal::alPulsarEscape);
+    connect(new QShortcut(QKeySequence(Qt::Key_Escape), this), &QShortcut::activated, this,
+            &VentanaPrincipal::alPulsarEscape);
 
     // Atajo reservado para uso interno. Se usa Ctrl+Shift+5 (en lugar de
     // Ctrl+Shift+0) para evitar pulsaciones accidentales junto a Ctrl+0.
@@ -179,16 +194,15 @@ void VentanaPrincipal::configurarConexiones()
     // --- Atajos de nivel de ampliación asignados por código ---
     // "Ctrl++" no se parsea bien desde el .ui; aquí se incluyen varias
     // variantes para máxima compatibilidad entre layouts de teclado.
-    m_interfaz->accionAcercar->setShortcuts({QKeySequence::ZoomIn,  QKeySequence("Ctrl+=")});
-    m_interfaz->accionAlejar ->setShortcuts({QKeySequence::ZoomOut, QKeySequence("Ctrl+-")});
+    m_interfaz->accionAcercar->setShortcuts({QKeySequence::ZoomIn, QKeySequence("Ctrl+=")});
+    m_interfaz->accionAlejar->setShortcuts({QKeySequence::ZoomOut, QKeySequence("Ctrl+-")});
 }
 
 // ============================================================================
 // Carga de imagen
 // ============================================================================
 
-void VentanaPrincipal::cargarImagen(const QString &rutaArchivo)
-{
+void VentanaPrincipal::cargarImagen(const QString &rutaArchivo) {
     if (rutaArchivo.isEmpty()) {
         return;
     }
@@ -196,8 +210,7 @@ void VentanaPrincipal::cargarImagen(const QString &rutaArchivo)
     // --- 1. Cargar la imagen con OpenCV ---
     auto resultadoImagen = m_manejadorImagen->cargarComoImagenQ(rutaArchivo);
     if (!resultadoImagen.has_value()) {
-        QMessageBox::warning(this, tr("Error al cargar imagen"),
-                             resultadoImagen.error());
+        QMessageBox::warning(this, tr("Error al cargar imagen"), resultadoImagen.error());
         actualizarBarraEstado(tr("Error: %1").arg(resultadoImagen.error()));
         return;
     }
@@ -209,9 +222,9 @@ void VentanaPrincipal::cargarImagen(const QString &rutaArchivo)
     // Escala inicial: si la imagen cabe en la vista, mostrarla al 100%;
     // si es más grande, ajustarla a ventana.
     const QSize tamanoImagen = m_elementoPixmap->pixmap().size();
-    const QSize tamanoVista  = m_interfaz->vistaGrafica->viewport()->size();
-    if (tamanoImagen.width() <= tamanoVista.width()
-        && tamanoImagen.height() <= tamanoVista.height()) {
+    const QSize tamanoVista = m_interfaz->vistaGrafica->viewport()->size();
+    if (tamanoImagen.width() <= tamanoVista.width() &&
+        tamanoImagen.height() <= tamanoVista.height()) {
         m_interfaz->vistaGrafica->resetTransform();
     } else {
         m_interfaz->vistaGrafica->fitInView(m_elementoPixmap, Qt::KeepAspectRatio);
@@ -250,17 +263,15 @@ void VentanaPrincipal::cargarImagen(const QString &rutaArchivo)
         case EstadoMetadatos::SinMetadatos: {
             auto *elementoInfo = new QTreeWidgetItem(m_interfaz->arbolMetadatos);
             elementoInfo->setText(0, tr("Sin metadatos"));
-            elementoInfo->setText(1,
-                tr("Este formato admite metadatos, pero la imagen no contiene "
-                   "ninguno EXIF, IPTC ni XMP."));
+            elementoInfo->setText(1, tr("Este formato admite metadatos, pero la imagen no contiene "
+                                        "ninguno EXIF, IPTC ni XMP."));
             break;
         }
 
         case EstadoMetadatos::FormatoNoSoportado: {
             auto *elementoInfo = new QTreeWidgetItem(m_interfaz->arbolMetadatos);
             elementoInfo->setText(0, tr("Formato no soportado"));
-            elementoInfo->setText(1,
-                tr("El formato de imagen no soporta consulta de metadatos."));
+            elementoInfo->setText(1, tr("El formato de imagen no soporta consulta de metadatos."));
             break;
         }
         }
@@ -270,7 +281,7 @@ void VentanaPrincipal::cargarImagen(const QString &rutaArchivo)
     m_rutaArchivoActual = rutaArchivo;
     reconstruirListaDirectorio();
     m_interfaz->accionExportarMetadatos->setEnabled(true);
-    m_interfaz->accionImprimirImagen   ->setEnabled(true);
+    m_interfaz->accionImprimirImagen->setEnabled(true);
     m_interfaz->accionImprimirMetadatos->setEnabled(true);
 
     actualizarBarraEstado(tr("Cargada: %1 (%2x%3)")
@@ -285,11 +296,9 @@ void VentanaPrincipal::cargarImagen(const QString &rutaArchivo)
 // Slots - Menú Archivo
 // ============================================================================
 
-void VentanaPrincipal::alAbrirArchivo()
-{
-    const QString filtroTodos =
-        tr("Todas las imágenes soportadas (%1)")
-            .arg(ManejadorImagen::extensionesSoportadas().join(' '));
+void VentanaPrincipal::alAbrirArchivo() {
+    const QString filtroTodos = tr("Todas las imágenes soportadas (%1)")
+                                    .arg(ManejadorImagen::extensionesSoportadas().join(' '));
 
     const QStringList listaFiltros = {
         filtroTodos,
@@ -309,27 +318,24 @@ void VentanaPrincipal::alAbrirArchivo()
         tr("Todos los archivos (*)"),
     };
 
-    const QString rutaArchivo = QFileDialog::getOpenFileName(
-        this, tr("Abrir imagen"), QString(), listaFiltros.join(";;"));
+    const QString rutaArchivo =
+        QFileDialog::getOpenFileName(this, tr("Abrir imagen"), QString(), listaFiltros.join(";;"));
 
     if (!rutaArchivo.isEmpty()) {
         cargarImagen(rutaArchivo);
     }
 }
 
-void VentanaPrincipal::alCerrarImagen()
-{
+void VentanaPrincipal::alCerrarImagen() {
     limpiarVista();
     actualizarBarraEstado(tr("Imagen cerrada."));
 }
 
-void VentanaPrincipal::alSalir()
-{
+void VentanaPrincipal::alSalir() {
     close();
 }
 
-void VentanaPrincipal::alImprimirImagen()
-{
+void VentanaPrincipal::alImprimirImagen() {
     if (m_elementoPixmap->pixmap().isNull()) {
         return;
     }
@@ -351,16 +357,15 @@ void VentanaPrincipal::alImprimirImagen()
     tamanoImpresion.scale(areaImpresion.size().toSize(), Qt::KeepAspectRatio);
 
     const QRectF rectanguloDestino(
-        QPointF(areaImpresion.center().x() - tamanoImpresion.width() / 2.0,
-                areaImpresion.center().y() - tamanoImpresion.height() / 2.0),
+        QPointF(areaImpresion.center().x() - (tamanoImpresion.width() / 2.0),
+                areaImpresion.center().y() - (tamanoImpresion.height() / 2.0)),
         tamanoImpresion);
 
     pintor.drawPixmap(rectanguloDestino, pixmap, pixmap.rect());
     pintor.end();
 }
 
-void VentanaPrincipal::alImprimirMetadatos()
-{
+void VentanaPrincipal::alImprimirMetadatos() {
     if (m_rutaArchivoActual.isEmpty()) {
         return;
     }
@@ -396,11 +401,10 @@ void VentanaPrincipal::alImprimirMetadatos()
     documento.print(&impresora);
 }
 
-void VentanaPrincipal::alExportarMetadatos()
-{
+void VentanaPrincipal::alExportarMetadatos() {
     if (m_rutaArchivoActual.isEmpty()) {
         QMessageBox::information(this, tr("Exportar metadatos"),
-            tr("No hay ninguna imagen cargada."));
+                                 tr("No hay ninguna imagen cargada."));
         return;
     }
 
@@ -410,9 +414,9 @@ void VentanaPrincipal::alExportarMetadatos()
         nombreSugerido = infoArchivo.completeBaseName() + QStringLiteral("_metadata.txt");
     }
 
-    const QString ruta = QFileDialog::getSaveFileName(
-        this, tr("Exportar metadatos"), nombreSugerido,
-        tr("Archivos de texto (*.txt);;Todos los archivos (*)"));
+    const QString ruta =
+        QFileDialog::getSaveFileName(this, tr("Exportar metadatos"), nombreSugerido,
+                                     tr("Archivos de texto (*.txt);;Todos los archivos (*)"));
 
     if (ruta.isEmpty()) {
         return;
@@ -421,7 +425,7 @@ void VentanaPrincipal::alExportarMetadatos()
     QFile archivo(ruta);
     if (!archivo.open(QIODevice::WriteOnly | QIODevice::Text | QIODevice::Truncate)) {
         QMessageBox::warning(this, tr("Error al exportar"),
-            tr("No se pudo abrir el archivo: %1").arg(archivo.errorString()));
+                             tr("No se pudo abrir el archivo: %1").arg(archivo.errorString()));
         return;
     }
 
@@ -452,8 +456,7 @@ void VentanaPrincipal::alExportarMetadatos()
 // Slots - Menú Visualización
 // ============================================================================
 
-void VentanaPrincipal::alSiguienteImagen()
-{
+void VentanaPrincipal::alSiguienteImagen() {
     if (m_imagenesDirectorio.isEmpty()) {
         return;
     }
@@ -461,27 +464,24 @@ void VentanaPrincipal::alSiguienteImagen()
     mostrarImagenEn(m_indiceActual);
 }
 
-void VentanaPrincipal::alImagenAnterior()
-{
+void VentanaPrincipal::alImagenAnterior() {
     if (m_imagenesDirectorio.isEmpty()) {
         return;
     }
-    m_indiceActual = (m_indiceActual - 1 + m_imagenesDirectorio.size()) % m_imagenesDirectorio.size();
+    m_indiceActual =
+        (m_indiceActual - 1 + m_imagenesDirectorio.size()) % m_imagenesDirectorio.size();
     mostrarImagenEn(m_indiceActual);
 }
 
-void VentanaPrincipal::alAcercar()
-{
+void VentanaPrincipal::alAcercar() {
     aplicarPasoNivelAmpliacion(kPasoNivelAmpliacionBoton);
 }
 
-void VentanaPrincipal::alAlejar()
-{
+void VentanaPrincipal::alAlejar() {
     aplicarPasoNivelAmpliacion(-kPasoNivelAmpliacionBoton);
 }
 
-void VentanaPrincipal::alAjustarVentana()
-{
+void VentanaPrincipal::alAjustarVentana() {
     if (m_elementoPixmap->pixmap().isNull()) {
         return;
     }
@@ -490,11 +490,14 @@ void VentanaPrincipal::alAjustarVentana()
     actualizarEtiquetaNivelAmpliacion();
 }
 
-void VentanaPrincipal::alRotarDerecha()        { rotarImagenActual(90); }
-void VentanaPrincipal::alRotarIzquierda()      { rotarImagenActual(-90); }
+void VentanaPrincipal::alRotarDerecha() {
+    rotarImagenActual(90);
+}
+void VentanaPrincipal::alRotarIzquierda() {
+    rotarImagenActual(-90);
+}
 
-void VentanaPrincipal::alAlternarPantallaCompleta()
-{
+void VentanaPrincipal::alAlternarPantallaCompleta() {
     if (isFullScreen()) {
         showNormal();
         menuBar()->setVisible(true);
@@ -512,12 +515,11 @@ void VentanaPrincipal::alAlternarPantallaCompleta()
     }
 }
 
-void VentanaPrincipal::alAlternarModoPresentacion(bool activo)
-{
+void VentanaPrincipal::alAlternarModoPresentacion(bool activo) {
     if (activo) {
         if (m_imagenesDirectorio.isEmpty()) {
             QMessageBox::information(this, tr("Modo presentación"),
-                tr("No hay imágenes en el directorio actual."));
+                                     tr("No hay imágenes en el directorio actual."));
             // Revertir el check sin re-disparar el slot.
             QSignalBlocker bloqueador(m_interfaz->accionPresentacion);
             m_interfaz->accionPresentacion->setChecked(false);
@@ -541,8 +543,7 @@ void VentanaPrincipal::alAlternarModoPresentacion(bool activo)
     }
 }
 
-void VentanaPrincipal::alAlternarPanelMetadatos(bool visible)
-{
+void VentanaPrincipal::alAlternarPanelMetadatos(bool visible) {
     // El estado del panel es la fuente de verdad del QAction checkable:
     // menú, toolbar y atajo M comparten el mismo objeto y quedan siempre
     // sincronizados.
@@ -553,30 +554,28 @@ void VentanaPrincipal::alAlternarPanelMetadatos(bool visible)
 // Slots - Menú Ayuda
 // ============================================================================
 
-void VentanaPrincipal::alMostrarAtajos()
-{
+void VentanaPrincipal::alMostrarAtajos() {
     // Este atajo no se incluye en la tabla: es de uso interno.
-    const QString html = tr(
-        "<h3>Atajos de teclado</h3>"
-        "<table cellspacing='6'>"
-        "<tr><td colspan='2'><b>Archivo</b></td></tr>"
-        "<tr><td>Abrir</td><td>Ctrl+O</td></tr>"
-        "<tr><td>Cerrar</td><td>Ctrl+W</td></tr>"
-        "<tr><td>Salir</td><td>Ctrl+Q</td></tr>"
-        "<tr><td colspan='2'><b>Visualización</b></td></tr>"
-        "<tr><td>Imagen siguiente</td><td>Space</td></tr>"
-        "<tr><td>Imagen anterior</td><td>Backspace</td></tr>"
-        "<tr><td>Acercar</td><td>Ctrl++</td></tr>"
-        "<tr><td>Alejar</td><td>Ctrl+-</td></tr>"
-        "<tr><td>Ajustar a ventana</td><td>Ctrl+0</td></tr>"
-        "<tr><td>Rotar 90º a la derecha</td><td>R</td></tr>"
-        "<tr><td>Rotar 90º a la izquierda</td><td>Shift+R</td></tr>"
-        "<tr><td>Modo pantalla completa</td><td>F11</td></tr>"
-        "<tr><td>Modo presentación</td><td>F5</td></tr>"
-        "<tr><td>Mostrar/ocultar metadatos</td><td>M</td></tr>"
-        "<tr><td colspan='2'><b>Ayuda</b></td></tr>"
-        "<tr><td>Atajos de teclado</td><td>F1</td></tr>"
-        "</table>");
+    const QString html = tr("<h3>Atajos de teclado</h3>"
+                            "<table cellspacing='6'>"
+                            "<tr><td colspan='2'><b>Archivo</b></td></tr>"
+                            "<tr><td>Abrir</td><td>Ctrl+O</td></tr>"
+                            "<tr><td>Cerrar</td><td>Ctrl+W</td></tr>"
+                            "<tr><td>Salir</td><td>Ctrl+Q</td></tr>"
+                            "<tr><td colspan='2'><b>Visualización</b></td></tr>"
+                            "<tr><td>Imagen siguiente</td><td>Space</td></tr>"
+                            "<tr><td>Imagen anterior</td><td>Backspace</td></tr>"
+                            "<tr><td>Acercar</td><td>Ctrl++</td></tr>"
+                            "<tr><td>Alejar</td><td>Ctrl+-</td></tr>"
+                            "<tr><td>Ajustar a ventana</td><td>Ctrl+0</td></tr>"
+                            "<tr><td>Rotar 90º a la derecha</td><td>R</td></tr>"
+                            "<tr><td>Rotar 90º a la izquierda</td><td>Shift+R</td></tr>"
+                            "<tr><td>Modo pantalla completa</td><td>F11</td></tr>"
+                            "<tr><td>Modo presentación</td><td>F5</td></tr>"
+                            "<tr><td>Mostrar/ocultar metadatos</td><td>M</td></tr>"
+                            "<tr><td colspan='2'><b>Ayuda</b></td></tr>"
+                            "<tr><td>Atajos de teclado</td><td>F1</td></tr>"
+                            "</table>");
 
     QMessageBox mensaje(this);
     mensaje.setWindowTitle(tr("Atajos de teclado"));
@@ -586,60 +585,51 @@ void VentanaPrincipal::alMostrarAtajos()
     mensaje.exec();
 }
 
-void VentanaPrincipal::alAcercaDe()
-{
-    QMessageBox::about(
-        this,
-        tr("Acerca de"),
-        tr("<h3>%1 %2</h3>"
-           "<p>Visor de imágenes con extracción de metadatos.</p>"
-           "<p><b>Tecnologías:</b> C++23, Qt6, OpenCV, Exiv2.</p>")
-            .arg(QApplication::applicationDisplayName())
-            .arg(QCoreApplication::applicationVersion()));
+void VentanaPrincipal::alAcercaDe() {
+    QMessageBox::about(this, tr("Acerca de"),
+                       tr("<h3>%1 %2</h3>"
+                          "<p>Visor de imágenes con extracción de metadatos.</p>"
+                          "<p><b>Tecnologías:</b> C++23, Qt6, OpenCV, Exiv2.</p>")
+                           .arg(QApplication::applicationDisplayName())
+                           .arg(QCoreApplication::applicationVersion()));
 }
 
 // ============================================================================
 // Slots - Internos
 // ============================================================================
 
-void VentanaPrincipal::alSiguienteDiapositiva()
-{
+void VentanaPrincipal::alSiguienteDiapositiva() {
     alSiguienteImagen();
 }
 
-void VentanaPrincipal::alPulsarEscape()
-{
+void VentanaPrincipal::alPulsarEscape() {
     // Escape sale de presentación si está activa; si no, de fullscreen.
     if (m_interfaz->accionPresentacion->isChecked()) {
-        m_interfaz->accionPresentacion->setChecked(false);  // dispara toggled(false)
+        m_interfaz->accionPresentacion->setChecked(false); // dispara toggled(false)
     } else if (isFullScreen()) {
         alAlternarPantallaCompleta();
     }
 }
 
-void VentanaPrincipal::alAtajoReservado()
-{
+void VentanaPrincipal::alAtajoReservado() {
     // Marcador de posición para una funcionalidad reservada que se
     // desarrollará en fases posteriores. De momento confirma que el
     // atajo está registrado y operativo.
-    QMessageBox::information(
-        this,
-        tr("Función reservada"),
-        tr("Esta función está reservada para uso interno y no está "
-           "disponible en esta versión."));
+    QMessageBox::information(this, tr("Función reservada"),
+                             tr("Esta función está reservada para uso interno y no está "
+                                "disponible en esta versión."));
 }
 
-void VentanaPrincipal::aplicarPasoNivelAmpliacion(int variacionPorcentaje)
-{
+void VentanaPrincipal::aplicarPasoNivelAmpliacion(int variacionPorcentaje) {
     if (m_elementoPixmap->pixmap().isNull()) {
         return;
     }
 
     const double porcentajeActual = m_interfaz->vistaGrafica->transform().m11() * 100.0;
-    const double porcentajeObjetivo  = porcentajeActual + variacionPorcentaje;
+    const double porcentajeObjetivo = porcentajeActual + variacionPorcentaje;
 
-    const double porcentajeAjustado = std::max(kNivelAmpliacionMinimo,
-                                std::min(porcentajeObjetivo, kNivelAmpliacionMaximo));
+    const double porcentajeAjustado =
+        std::max(kNivelAmpliacionMinimo, std::min(porcentajeObjetivo, kNivelAmpliacionMaximo));
 
     if (qFuzzyCompare(porcentajeAjustado, porcentajeActual)) {
         return;
@@ -654,14 +644,12 @@ void VentanaPrincipal::aplicarPasoNivelAmpliacion(int variacionPorcentaje)
 // Auxiliares
 // ============================================================================
 
-void VentanaPrincipal::actualizarBarraEstado(const QString &mensaje)
-{
+void VentanaPrincipal::actualizarBarraEstado(const QString &mensaje) {
     // Sin timeout: el mensaje permanece hasta que se sustituya por otro.
     statusBar()->showMessage(mensaje);
 }
 
-void VentanaPrincipal::limpiarVista()
-{
+void VentanaPrincipal::limpiarVista() {
     m_estadoMetadatosActuales = EstadoMetadatos::SinMetadatos;
     m_rutaArchivoActual.clear();
     m_metadatosActuales.clear();
@@ -669,12 +657,11 @@ void VentanaPrincipal::limpiarVista()
     m_escena->setSceneRect(QRectF());
     m_interfaz->arbolMetadatos->clear();
     m_interfaz->accionExportarMetadatos->setEnabled(false);
-    m_interfaz->accionImprimirImagen   ->setEnabled(false);
+    m_interfaz->accionImprimirImagen->setEnabled(false);
     m_interfaz->accionImprimirMetadatos->setEnabled(false);
 }
 
-void VentanaPrincipal::reconstruirListaDirectorio()
-{
+void VentanaPrincipal::reconstruirListaDirectorio() {
     m_imagenesDirectorio.clear();
     if (m_rutaArchivoActual.isEmpty()) {
         return;
@@ -683,8 +670,8 @@ void VentanaPrincipal::reconstruirListaDirectorio()
     const QFileInfo infoArchivo(m_rutaArchivoActual);
     QDir directorio = infoArchivo.absoluteDir();
 
-    const QFileInfoList entradas = directorio.entryInfoList(
-        ManejadorImagen::extensionesSoportadas(), QDir::Files, QDir::Name);
+    const QFileInfoList entradas =
+        directorio.entryInfoList(ManejadorImagen::extensionesSoportadas(), QDir::Files, QDir::Name);
 
     for (const auto &entrada : entradas) {
         m_imagenesDirectorio << entrada.absoluteFilePath();
@@ -692,16 +679,14 @@ void VentanaPrincipal::reconstruirListaDirectorio()
     m_indiceActual = m_imagenesDirectorio.indexOf(m_rutaArchivoActual);
 }
 
-void VentanaPrincipal::mostrarImagenEn(int indice)
-{
+void VentanaPrincipal::mostrarImagenEn(int indice) {
     if (indice < 0 || indice >= m_imagenesDirectorio.size()) {
         return;
     }
     cargarImagen(m_imagenesDirectorio.at(indice));
 }
 
-void VentanaPrincipal::rotarImagenActual(int grados)
-{
+void VentanaPrincipal::rotarImagenActual(int grados) {
     if (m_elementoPixmap->pixmap().isNull()) {
         return;
     }
@@ -715,8 +700,7 @@ void VentanaPrincipal::rotarImagenActual(int grados)
     actualizarEtiquetaNivelAmpliacion();
 }
 
-void VentanaPrincipal::actualizarEtiquetaNivelAmpliacion()
-{
+void VentanaPrincipal::actualizarEtiquetaNivelAmpliacion() {
     if (!m_etiquetaNivelAmpliacion) {
         return;
     }
@@ -724,13 +708,12 @@ void VentanaPrincipal::actualizarEtiquetaNivelAmpliacion()
     m_etiquetaNivelAmpliacion->setText(QStringLiteral("%1%").arg(qRound(escala * 100.0)));
 }
 
-QString VentanaPrincipal::construirCabeceraImagen() const
-{
+QString VentanaPrincipal::construirCabeceraImagen() const {
     const QFileInfo infoArchivo(m_rutaArchivoActual);
     QString cabecera;
     QTextStream flujo(&cabecera);
     flujo << "=== DATOS DE LA IMAGEN ===\n"
-          << "Nombre:  " << infoArchivo.fileName()         << '\n'
+          << "Nombre:  " << infoArchivo.fileName() << '\n'
           << "Formato: " << infoArchivo.suffix().toUpper() << '\n'
           << "Ruta:    " << infoArchivo.absoluteFilePath() << "\n\n";
     return cabecera;
