@@ -4,6 +4,10 @@ Un visor de imágenes ligero y rápido para Linux, con extracción de metadatos 
 
 ![Captura de pantalla](docs/screenshot.png)
 
+## Versión
+
+**0.4.0**
+
 ## Características
 
 - Apertura de todos los formatos de imagen que soporta OpenCV (JPEG, PNG, TIFF, WebP, BMP, GIF, etc.).

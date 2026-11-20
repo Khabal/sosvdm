@@ -1,5 +1,5 @@
 // ============================================================================
-// imagehandler.h - Carga de imágenes con OpenCV
+// manejadorimagen.h - Carga de imágenes con OpenCV
 // ============================================================================
 #pragma once
 
@@ -21,46 +21,46 @@
  *   - Mantenemos un cv::Mat interno con la última imagen cargada, de
  *     forma que los píxeles en bruto estén disponibles para cualquier
  *     procesamiento adicional que se requiera.
- *   - loadAsQImage() es una función de conveniencia para la GUI. La
- *     conversión BGR->RGB la hace esta clase, no la ventana.
+ *   - cargarComoImagenQ() es una función de conveniencia para la GUI.
+ *     La conversión BGR->RGB la hace esta clase, no la ventana.
  */
-class ImageHandler
+class ManejadorImagen
 {
     // Añade tr() a esta clase sin necesidad de heredar de QObject.
-    Q_DECLARE_TR_FUNCTIONS(ImageHandler)
+    Q_DECLARE_TR_FUNCTIONS(ManejadorImagen)
 
 public:
-    ImageHandler() = default;
-    ~ImageHandler() = default;
+    ManejadorImagen()  = default;
+    ~ManejadorImagen() = default;
 
     // No copiable: la imagen puede ser grande y no queremos duplicarla
     // accidentalmente. Sí movible.
-    ImageHandler(const ImageHandler &)            = delete;
-    ImageHandler &operator=(const ImageHandler &) = delete;
-    ImageHandler(ImageHandler &&)                 = default;
-    ImageHandler &operator=(ImageHandler &&)      = default;
+    ManejadorImagen(const ManejadorImagen &)            = delete;
+    ManejadorImagen &operator=(const ManejadorImagen &) = delete;
+    ManejadorImagen(ManejadorImagen &&)                 noexcept = default;
+    ManejadorImagen &operator=(ManejadorImagen &&)      noexcept = default;
 
     /**
      * @brief Carga una imagen desde disco.
-     * @param filePath Ruta al archivo.
+     * @param rutaArchivo Ruta al archivo.
      * @return cv::Mat con la imagen en formato BGR, o un mensaje de error.
      */
     [[nodiscard]] std::expected<cv::Mat, QString>
-    load(const QString &filePath);
+    cargar(const QString &rutaArchivo);
 
     /**
      * @brief Carga una imagen y la devuelve lista para mostrar en Qt.
-     * @param filePath Ruta al archivo.
+     * @param rutaArchivo Ruta al archivo.
      * @return QImage en formato RGB, o un mensaje de error.
      *
-     * Este método combina load() con la conversión a QImage para
+     * Este método combina cargar() con la conversión a QImage para
      * simplificar el uso desde la GUI.
      */
     [[nodiscard]] std::expected<QImage, QString>
-    loadAsQImage(const QString &filePath);
+    cargarComoImagenQ(const QString &rutaArchivo);
 
     /// Devuelve la última imagen cargada (puede estar vacía).
-    [[nodiscard]] const cv::Mat &currentImage() const noexcept { return m_currentImage; }
+    [[nodiscard]] const cv::Mat &imagenActual() const noexcept { return m_imagenActual; }
 
     /**
      * @brief Extensiones de archivo soportadas, con patrón glob.
@@ -70,8 +70,8 @@ public:
      * construcción de la lista de imágenes del directorio. Si OpenCV
      * añade soporte para un formato nuevo, basta con añadirlo aquí.
      */
-    [[nodiscard]] static const QStringList &supportedExtensions();
+    [[nodiscard]] static const QStringList &extensionesSoportadas();
 
 private:
-    cv::Mat m_currentImage;
+    cv::Mat m_imagenActual;
 };

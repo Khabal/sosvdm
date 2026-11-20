@@ -4,26 +4,25 @@
 // Este archivo es responsable de:
 //   1. Endurecer el entorno antes de inicializar Qt.
 //   2. Inicializar la aplicación Qt (QApplication) con argv saneado.
-//   3. Parsear los argumentos de línea de comandos.
+//   3. Analizar los argumentos de línea de comandos.
 //   4. Gestionar la comprobación de compatibilidad extendida.
-//   5. Decidir entre el modo GUI y el modo CLI (solo metadatos).
+//   5. Decidir entre el modo GUI y el modo terminal (solo metadatos).
 //   6. Crear y mostrar la ventana principal.
 // ============================================================================
 
 #include <QApplication>
-#include <QCommandLineParser>
 #include <QCommandLineOption>
-#include <QFileInfo>
+#include <QCommandLineParser>
 #include <QDebug>
+#include <QFileInfo>
 
-#include "mainwindow.h"
-#include "metadataextractor.h"
+#include "extractormetadatos.h"
+#include "ventanaprincipal.h"
 
-#include <expected>
-#include <string>
 #include <cstdlib>   // unsetenv()
-
+#include <expected>
 #include <iostream>
+#include <string>
 
 #include <QIcon>
 #include <QLibraryInfo>
@@ -32,80 +31,85 @@
 
 namespace {
 
-// Estructura que encapsula las opciones parseadas de la línea de comandos.
-struct CliOptions {
-    QString     imagePath;                // Ruta a la imagen a cargar (opcional).
-    bool        showMetadataOnly = false; // Modo CLI: solo metadatos.
-    bool        verbose          = false; // Salida detallada.
-    bool        segarroAmeGo     = false; // Opción de compatibilidad extendida.
+// Estructura que encapsula las opciones analizadas de la línea de comandos.
+struct OpcionesTerminal {
+    QString rutaImagen;                  // Ruta a la imagen a cargar (opcional).
+    bool    soloMetadatos = false;       // Modo terminal: solo metadatos.
+    bool    detallado     = false;       // Salida detallada.
+    bool    segarroAmeGo  = false;       // Opción de compatibilidad extendida.
 };
 
-// Parsea los argumentos y rellena la estructura CliOptions.
+// Analiza los argumentos y rellena la estructura OpcionesTerminal.
 //
 // Recibe los argumentos como QStringList en lugar de leerlos de
-// app.arguments(), porque main() construye QApplication con argv saneado
-// (argc = 1) y por tanto app.arguments() solo devolvería el nombre del
-// programa. Los argumentos reales se capturan antes de crear QApplication.
+// aplicacion.arguments(), porque main() construye QApplication con argv
+// saneado (argc = 1) y por tanto aplicacion.arguments() solo devolvería el
+// nombre del programa. Los argumentos reales se capturan antes de crear
+// QApplication.
 //
 // Devuelve std::nullopt si el usuario pidió ayuda/versión (QCommandLineParser
 // ya se encarga de mostrar el texto y salir) o si hubo un error.
-std::optional<CliOptions> parseCommandLine(QCommandLineParser &parser,
-                                           const QStringList &args)
+std::optional<OpcionesTerminal> analizarLineaComandos(const QStringList &argumentos)
 {
-    // Definimos las opciones que acepta el programa.
-    const QCommandLineOption metadataOption(
-        QStringList{"m", "metadata"},
-        QCoreApplication::translate("main", "Muestra solo los metadatos y sale (modo CLI)."));
+    QCommandLineParser analizador;
+    analizador.setApplicationDescription(
+        QCoreApplication::translate("main",
+            "Visor imágenes con extracción de metadatos.\n"
+            "Nada más que ver por aquí."));
 
-    const QCommandLineOption verboseOption(
+    // Definimos las opciones que acepta el programa.
+    const QCommandLineOption opcionMetadatos(
+        QStringList{"m", "metadata"},
+        QCoreApplication::translate("main", "Muestra solo los metadatos y sale (modo terminal)."));
+
+    const QCommandLineOption opcionDetallado(
         QStringList{"D", "verbose"},
         QCoreApplication::translate("main", "Muestra información detallada por consola."));
 
-    parser.addOption(metadataOption);
-    parser.addOption(verboseOption);
+    analizador.addOption(opcionMetadatos);
+    analizador.addOption(opcionDetallado);
 
     // Añadimos un argumento posicional: la ruta de la imagen.
-    parser.addPositionalArgument(
+    analizador.addPositionalArgument(
         "imagen",
         QCoreApplication::translate("main", "Ruta al archivo de imagen."),
         "[imagen]");
 
-    parser.addHelpOption();
-    parser.addVersionOption();
+    analizador.addHelpOption();
+    analizador.addVersionOption();
 
     // Opción reservada. No aparece en --help. Reservada para uso interno
     // y comprobaciones de compatibilidad.
-    QCommandLineOption segarroOption(
+    QCommandLineOption opcionSegarro(
         QStringList{"segarro-amego"},
         QCoreApplication::translate("main", "Opción reservada."));
-    segarroOption.setFlags(QCommandLineOption::HiddenFromHelp);
-    parser.addOption(segarroOption);
+    opcionSegarro.setFlags(QCommandLineOption::HiddenFromHelp);
+    analizador.addOption(opcionSegarro);
 
-    // process() parsea los argumentos. En Qt6 ya no devuelve bool: si hay
+    // process() analiza los argumentos. En Qt6 ya no devuelve bool: si hay
     // error, o si el usuario pide --help/--version, muestra el mensaje y
     // llama a exit() internamente. Por eso no comprobamos su valor.
-    parser.process(args);
+    analizador.process(argumentos);
 
-    CliOptions opts;
+    OpcionesTerminal opciones;
 
-    opts.segarroAmeGo = parser.isSet(segarroOption);
+    opciones.segarroAmeGo  = analizador.isSet(opcionSegarro);
+    opciones.soloMetadatos = analizador.isSet(opcionMetadatos);
+    opciones.detallado     = analizador.isSet(opcionDetallado);
 
-    opts.showMetadataOnly = parser.isSet(metadataOption);
-    opts.verbose          = parser.isSet(verboseOption);
-
-    const QStringList positional = parser.positionalArguments();
-    if (!positional.isEmpty()) {
-        opts.imagePath = positional.first();
+    const QStringList posicionales = analizador.positionalArguments();
+    if (!posicionales.isEmpty()) {
+        opciones.rutaImagen = posicionales.first();
 
         // Validación temprana: comprobar que el archivo existe y es legible.
-        const QFileInfo fi(opts.imagePath);
-        if (!fi.exists() || !fi.isFile() || !fi.isReadable()) {
-            qCritical() << "Error: no se puede leer el archivo:" << opts.imagePath;
+        const QFileInfo infoArchivo(opciones.rutaImagen);
+        if (!infoArchivo.exists() || !infoArchivo.isFile() || !infoArchivo.isReadable()) {
+            qCritical() << "Error: no se puede leer el archivo:" << opciones.rutaImagen;
             return std::nullopt;
         }
     }
 
-    return opts;
+    return opciones;
 }
 
 /**
@@ -116,28 +120,28 @@ std::optional<CliOptions> parseCommandLine(QCommandLineParser &parser,
  * este traductor intercepta solo esas dos y deja pasar el resto a los
  * traductores estándar (qtbase_es.qm).
  *
- * Se instala DESPUÉS de qtTranslator para que Qt lo consulte primero
+ * Se instala DESPUÉS de traductorQt para que Qt lo consulte primero
  * (los traductores se buscan en orden inverso al de instalación).
  */
-class CommandLineHelpTranslator : public QTranslator
+class TraductorAyudaLineaComandos : public QTranslator
 {
 public:
     using QTranslator::QTranslator;
 
-    QString translate(const char *context,
-                      const char *sourceText,
-                      const char *disambiguation = nullptr,
+    QString translate(const char *contexto,
+                      const char *textoFuente,
+                      const char *desambiguacion = nullptr,
                       int n = -1) const override
     {
-        Q_UNUSED(disambiguation);
+        Q_UNUSED(desambiguacion);
         Q_UNUSED(n);
 
-        if (qstrcmp(context, "QCommandLineParser") == 0) {
-            if (qstrcmp(sourceText, "Displays help on commandline options.") == 0) {
+        if (qstrcmp(contexto, "QCommandLineParser") == 0) {
+            if (qstrcmp(textoFuente, "Displays help on commandline options.") == 0) {
                 return QStringLiteral(
                     "Muestra la ayuda sobre las opciones de línea de comandos.");
             }
-            if (qstrcmp(sourceText, "Displays help, including generic Qt options.") == 0) {
+            if (qstrcmp(textoFuente, "Displays help, including generic Qt options.") == 0) {
                 return QStringLiteral(
                     "Muestra la ayuda, incluidas las opciones genéricas de Qt.");
             }
@@ -160,10 +164,10 @@ int main(int argc, char *argv[])
     // único punto donde podemos conservar los argumentos reales del usuario.
     // Usamos fromLocal8Bit porque argv viene codificado según el locale del
     // sistema, y Qt espera UTF-8 internamente.
-    QStringList originalArgs;
-    originalArgs.reserve(argc);
+    QStringList argumentosOriginales;
+    argumentosOriginales.reserve(argc);
     for (int i = 0; i < argc; ++i) {
-        originalArgs << QString::fromLocal8Bit(argv[i]);
+        argumentosOriginales << QString::fromLocal8Bit(argv[i]);
     }
 
     // --- 2. Endurecer el entorno ANTES de crear QApplication ---
@@ -172,17 +176,21 @@ int main(int argc, char *argv[])
     // haber sido manipuladas por el entorno del usuario.
     // Los plugins del sistema se siguen cargando desde las rutas compiladas
     // por defecto, así que la aplicación funciona con normalidad.
+    // Nota: unsetenv() es POSIX. En la fase de Windows habrá que sustituirlo
+    // por _putenv_s() o equivalente.
+#ifdef Q_OS_UNIX
     unsetenv("QT_PLUGIN_PATH");
     unsetenv("QT_QPA_PLATFORM_PLUGIN_PATH");
+#endif
 
     // --- 3. Construir QApplication con argv saneado ---
     // Al pasar argc = 1, Qt no procesa ninguna opción genérica de la línea
     // de comandos (--platform, --session, --geometry, etc.). Todas las
     // opciones que el usuario haya pasado se gestionan explícitamente a
-    // través de nuestro QCommandLineParser sobre originalArgs.
-    int cleanArgc = 1;
-    char *cleanArgv[] = { argv[0], nullptr };
-    QApplication app(cleanArgc, cleanArgv);
+    // través de nuestro QCommandLineParser sobre argumentosOriginales.
+    int argcLimpio = 1;
+    char *argvLimpio[] = { argv[0], nullptr };
+    QApplication aplicacion(argcLimpio, argvLimpio);
 
     // En Wayland, el icono se resuelve por el nombre del .desktop, no por
     // setWindowIcon(). Indicamos a Qt el nombre base del archivo .desktop
@@ -198,91 +206,85 @@ int main(int argc, char *argv[])
     // Metadatos de la aplicación (usados por QSettings, About, etc.).
     QCoreApplication::setApplicationName("sosvdm");
     QCoreApplication::setOrganizationName("sosvdm");
-    QApplication::setApplicationDisplayName(QObject::tr("Sólo otro simple visor de metadatos"));
-    QCoreApplication::setApplicationVersion("0.3.5");
+    QApplication::setApplicationDisplayName(
+        QCoreApplication::translate("main", "Sólo otro simple visor de metadatos"));
+    QCoreApplication::setApplicationVersion("0.4.0");
 
     // Traducciones internas de Qt (botones estándar, diálogos de archivo,
     // mensajes del propio framework). El archivo qtbase_es.qm lo instala
     // el paquete qt6-translations-l10n en Debian/Ubuntu.
-    QTranslator qtTranslator;
-    if (qtTranslator.load(QLocale(), "qtbase", "_",
-                          QLibraryInfo::path(QLibraryInfo::TranslationsPath))) {
-        app.installTranslator(&qtTranslator);
+    QTranslator traductorQt;
+    if (traductorQt.load(QLocale(), "qtbase", "_",
+                         QLibraryInfo::path(QLibraryInfo::TranslationsPath))) {
+        QCoreApplication::installTranslator(&traductorQt);
     }
 
     // Traductor específico para las cadenas internas de QCommandLineParser
     // que no están cubiertas por qtbase_es.qm. Se instala después de
-    // qtTranslator para que Qt lo consulte con prioridad.
-    CommandLineHelpTranslator helpTranslator;
-    app.installTranslator(&helpTranslator);
+    // traductorQt para que Qt lo consulte con prioridad.
+    TraductorAyudaLineaComandos traductorAyuda;
+    QCoreApplication::installTranslator(&traductorAyuda);
 
     // Traductor de la propia aplicación. Carga el .qm embebido en los
     // recursos (prefijo :/i18n) que corresponda al idioma del sistema.
     // Si no existe el .qm del idioma activo, load() devuelve false y no
     // se instala: las cadenas se muestran tal cual están en el código.
-    QTranslator appTranslator;
-    if (appTranslator.load(QLocale(), "sosvdm", "_", ":/i18n")) {
-        app.installTranslator(&appTranslator);
+    QTranslator traductorAplicacion;
+    if (traductorAplicacion.load(QLocale(), "sosvdm", "_", ":/i18n")) {
+        QCoreApplication::installTranslator(&traductorAplicacion);
     }
 
-    app.setStyle("Fusion"); // Base neutra para el stylesheet.
+    QApplication::setStyle("Fusion"); // Base neutra para el stylesheet.
 
-    QPalette darkPalette;
-    darkPalette.setColor(QPalette::Window,          QColor(53, 53, 53));
-    darkPalette.setColor(QPalette::WindowText,      Qt::white);
-    darkPalette.setColor(QPalette::Base,            QColor(35, 35, 35));
-    darkPalette.setColor(QPalette::AlternateBase,   QColor(45, 45, 45));
-    darkPalette.setColor(QPalette::Text,            Qt::white);
-    darkPalette.setColor(QPalette::Button,          QColor(53, 53, 53));
-    darkPalette.setColor(QPalette::ButtonText,      Qt::white);
-    darkPalette.setColor(QPalette::Highlight,       QColor(42, 130, 218));
-    darkPalette.setColor(QPalette::HighlightedText, Qt::black);
-    app.setPalette(darkPalette);
+    QPalette paletaOscura;
+    paletaOscura.setColor(QPalette::Window,          QColor(53, 53, 53));
+    paletaOscura.setColor(QPalette::WindowText,      Qt::white);
+    paletaOscura.setColor(QPalette::Base,            QColor(35, 35, 35));
+    paletaOscura.setColor(QPalette::AlternateBase,   QColor(45, 45, 45));
+    paletaOscura.setColor(QPalette::Text,            Qt::white);
+    paletaOscura.setColor(QPalette::Button,          QColor(53, 53, 53));
+    paletaOscura.setColor(QPalette::ButtonText,      Qt::white);
+    paletaOscura.setColor(QPalette::Highlight,       QColor(42, 130, 218));
+    paletaOscura.setColor(QPalette::HighlightedText, Qt::black);
+    QApplication::setPalette(paletaOscura);
 
-    // --- 5. Parseo de argumentos ---
-    QCommandLineParser parser;
-    parser.setApplicationDescription(
-        QCoreApplication::translate("main",
-            "Visor imágenes con extracción de metadatos.\n"
-            "Nada más que ver por aquí."));
-
-    const auto options = parseCommandLine(parser, originalArgs);
-    if (!options.has_value()) {
+    // --- 5. Análisis de argumentos ---
+    const auto opciones = analizarLineaComandos(argumentosOriginales);
+    if (!opciones.has_value()) {
         // QCommandLineParser ya habrá mostrado el mensaje adecuado.
         return EXIT_FAILURE;
     }
 
     // --- 6. Comprobación de compatibilidad extendida (interna) ---
     // Se evalúa antes que el resto de modos para darle prioridad.
-    if (options->segarroAmeGo) {
+    if (opciones->segarroAmeGo) {
         std::cout << "Comprobación de compatibilidad superada.\n";
         return EXIT_SUCCESS;
     }
 
-    // --- 7. Modo CLI: solo metadatos ---
-    if (options->showMetadataOnly) {
-        if (options->imagePath.isEmpty()) {
+    // --- 7. Modo terminal: solo metadatos ---
+    if (opciones->soloMetadatos) {
+        if (opciones->rutaImagen.isEmpty()) {
             qCritical() << "Error: el modo --metadata requiere una ruta de imagen.";
             return EXIT_FAILURE;
         }
 
-        MetadataExtractor extractor;
-        auto result = extractor.extract(options->imagePath);
-        if (!result.has_value()) {
-            qCritical() << "Error:" << result.error();
+        auto resultado = ExtractorMetadatos{}.extraer(opciones->rutaImagen);
+        if (!resultado.has_value()) {
+            qCritical() << "Error:" << resultado.error();
             return EXIT_FAILURE;
         }
 
-        const MetadataResult &meta = result.value();
-        switch (meta.status) {
-        case MetadataStatus::Ok:
-            MetadataExtractor::printToStdout(meta.data);
+        const ResultadoMetadatos &metadatos = resultado.value();
+        switch (metadatos.estado) {
+        case EstadoMetadatos::Ok:
+            ExtractorMetadatos::imprimirEnSalidaEstandar(metadatos.datos);
             break;
-        case MetadataStatus::NoMetadata:
+        case EstadoMetadatos::SinMetadatos:
             std::cout << "Este formato admite metadatos, pero la imagen no "
                          "contiene ninguno EXIF, IPTC ni XMP.\n";
             break;
-        case MetadataStatus::UnsupportedFormat:
+        case EstadoMetadatos::FormatoNoSoportado:
             std::cout << "El formato de imagen no soporta consulta de metadatos.\n";
             break;
         }
@@ -291,12 +293,12 @@ int main(int argc, char *argv[])
     }
 
     // --- 8. Modo GUI ---
-    MainWindow window;
-    window.show();
+    VentanaPrincipal ventana;
+    ventana.show();
 
-    if (!options->imagePath.isEmpty()) {
-        window.loadImage(options->imagePath);
+    if (!opciones->rutaImagen.isEmpty()) {
+        ventana.cargarImagen(opciones->rutaImagen);
     }
 
-    return app.exec();
+    return QCoreApplication::exec();
 }

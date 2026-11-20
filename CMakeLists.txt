@@ -8,7 +8,7 @@
 cmake_minimum_required(VERSION 3.20)
 
 # El proyecto se llama "Sólo otro simple visor de metadatos" (sosvdm) y está escrito en C++.
-project(sosvdm VERSION 0.3.5 LANGUAGES CXX)
+project(sosvdm VERSION 0.4.0 LANGUAGES CXX)
 
 # 2. Configuración del estándar C++ y del comportamiento del compilador
 # ----------------------------------------------------------------------------
@@ -75,16 +75,16 @@ find_package(exiv2 REQUIRED CONFIG)
 # los procesarán automáticamente gracias a las variables AUTOMOC/UIC/RCC.
 set(PROJECT_SOURCES
     src/main.cpp
-    src/mainwindow.cpp
-    src/mainwindow.h
-    src/mainwindow.ui
-    src/imagehandler.cpp
-    src/imagehandler.h
-    src/metadataextractor.cpp
-    src/metadataextractor.h
+    src/ventanaprincipal.cpp
+    src/ventanaprincipal.h
+    src/ventanaprincipal.ui
+    src/manejadorimagen.cpp
+    src/manejadorimagen.h
+    src/extractormetadatos.cpp
+    src/extractormetadatos.h
     resources/resources.qrc
-    src/graphicsviewzoom.cpp
-    src/graphicsviewzoom.h
+    src/vistagraficanivelampliacion.cpp
+    src/vistagraficanivelampliacion.h
 )
 
 # Creamos el objetivo ejecutable.

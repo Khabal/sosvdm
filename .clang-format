@@ -1,0 +1,63 @@
+---
+# Estilo base LLVM con ajustes para alinearse con las convenciones de Qt
+# y con el estilo que ya usa el proyecto.
+
+Language: Cpp
+BasedOnStyle: LLVM
+
+# --- Indentación y longitud de línea ---
+IndentWidth: 4
+ColumnLimit: 100
+TabWidth: 4
+UseTab: Never
+ContinuationIndentWidth: 4
+ConstructorInitializerIndentWidth: 4
+
+# --- Llaves ---
+# Attach: llaves en la misma línea que la declaración (estilo K&R),
+# que es el que usa el código actual.
+BreakBeforeBraces: Attach
+
+# --- Acceso (public, private, etc.) ---
+# -4 para que queden alineados con la indentación de la clase.
+AccessModifierOffset: -4
+
+# --- Punteros y referencias ---
+# Right: "Type *ptr" y "Type &ref" (convención Qt).
+PointerAlignment: Right
+ReferenceAlignment: Pointer
+
+# --- Inicialización de constructores ---
+# Coma al principio de línea, como en el código actual:
+#   MainWindow::MainWindow(QWidget *parent)
+#       : QMainWindow(parent)
+#       , ui(std::make_unique<Ui::MainWindow>())
+BreakConstructorInitializers: BeforeComma
+
+# --- Funciones y bloques cortos ---
+AllowShortFunctionsOnASingleLine: Empty
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLoopsOnASingleLine: false
+AllowShortBlocksOnASingleLine: Empty
+AllowShortCaseLabelsOnASingleLine: false
+
+# --- Espacios de nombres ---
+NamespaceIndentation: None
+
+# --- Includes ---
+# Agrupados por categoría y separados por línea en blanco.
+SortIncludes: CaseSensitive
+IncludeBlocks: Regroup
+IncludeCategories:
+  # 1. Cabeceras propias del proyecto entre comillas.
+  - Regex: '^".*\.h"$'
+    Priority: 1
+  # 2. Cabeceras de Qt (empiezan por Q).
+  - Regex: '^<Q.*>$'
+    Priority: 2
+  # 3. Bibliotecas de terceros.
+  - Regex: '^<(opencv2|exiv2)/.*>$'
+    Priority: 3
+  # 4. Biblioteca estándar y cualquier otro <...>.
+  - Regex: '^<.*>$'
+    Priority: 4

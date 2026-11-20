@@ -1,0 +1,83 @@
+---
+# Conjunto de comprobaciones razonable para un proyecto C++23 con Qt.
+# Se activan las familias más útiles y se desactivan las que generan
+# ruido con el modelo de Qt (señales/slots, moc, etc.).
+
+Checks: >
+  -*,
+  bugprone-*,
+  modernize-*,
+  performance-*,
+  readability-*,
+  -bugprone-branch-clone,
+  -bugprone-easily-swappable-parameters,
+  -bugprone-exception-escape,
+  -bugprone-narrowing-conversions,
+  -modernize-use-trailing-return-type,
+  -modernize-use-nodiscard,
+  -modernize-return-braced-init-list,
+  -modernize-use-auto,
+  -modernize-loop-convert,
+  -modernize-avoid-c-arrays,
+  -modernize-avoid-bind,
+  -modernize-deprecated-headers,
+  -modernize-use-override,
+  -performance-unnecessary-value-param,
+  -performance-trivially-destructible,
+  -readability-identifier-length,
+  -readability-magic-numbers,
+  -readability-function-cognitive-complexity,
+  -readability-else-after-return,
+  -readability-implicit-bool-conversion,
+  -readability-simplify-boolean-expr,
+  -readability-named-parameter,
+  -readability-non-const-parameter,
+  -readability-convert-member-functions-to-static,
+  -readability-redundant-declaration,
+  -readability-use-anyofallof,
+  -readability-avoid-const-params-in-decls,
+  -readability-qualified-auto,
+  -readability-suspicious-call-argument,
+  -readability-container-size-empty,
+  -readability-uppercase-literal-suffix
+
+# No tratamos los avisos como errores de compilación:
+# queremos verlos y decidir cuáles corregir.
+WarningsAsErrors: ''
+
+# Solo analizamos cabeceras propias (no las de Qt, OpenCV o Exiv2).
+HeaderFilterRegex: '.*(src|resources)/.*'
+
+# Usa el .clang-format del proyecto para el formateo sugerido.
+FormatStyle: file
+
+# Convenciones de nombrado, alineadas con el código actual.
+CheckOptions:
+  # Clases y structs en CamelCase (MainWindow, ImageHandler, ...).
+  - key: readability-identifier-naming.ClassCase
+    value: CamelCase
+  - key: readability-identifier-naming.StructCase
+    value: CamelCase
+  - key: readability-identifier-naming.EnumCase
+    value: CamelCase
+  # Enum class values en CamelCase (Ok, NoMetadata, UnsupportedFormat).
+  - key: readability-identifier-naming.EnumConstantCase
+    value: CamelCase
+  # Funciones en camelBack (loadImage, onActionOpenTriggered, ...).
+  - key: readability-identifier-naming.FunctionCase
+    value: camelBack
+  # Variables locales y parámetros en camelBack.
+  - key: readability-identifier-naming.VariableCase
+    value: camelBack
+  - key: readability-identifier-naming.ParameterCase
+    value: camelBack
+  # Miembros privados en camelBack con prefijo m_.
+  - key: readability-identifier-naming.PrivateMemberCase
+    value: camelBack
+  - key: readability-identifier-naming.PrivateMemberPrefix
+    value: 'm_'
+  # Constantes de clase en CamelCase con prefijo k (kZoomMinPercent).
+  - key: readability-identifier-naming.ClassConstantCase
+    value: CamelCase
+  - key: readability-identifier-naming.ClassConstantPrefix
+    value: 'k'
