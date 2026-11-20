@@ -208,7 +208,7 @@ int main(int argc, char *argv[])
     QCoreApplication::setOrganizationName("sosvdm");
     QApplication::setApplicationDisplayName(
         QCoreApplication::translate("main", "Sólo otro simple visor de metadatos"));
-    QCoreApplication::setApplicationVersion("0.4.0");
+    QCoreApplication::setApplicationVersion("0.4.1");
 
     // Traducciones internas de Qt (botones estándar, diálogos de archivo,
     // mensajes del propio framework). El archivo qtbase_es.qm lo instala

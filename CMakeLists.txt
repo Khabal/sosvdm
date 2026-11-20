@@ -8,7 +8,7 @@
 cmake_minimum_required(VERSION 3.20)
 
 # El proyecto se llama "Sólo otro simple visor de metadatos" (sosvdm) y está escrito en C++.
-project(sosvdm VERSION 0.4.0 LANGUAGES CXX)
+project(sosvdm VERSION 0.4.1 LANGUAGES CXX)
 
 # 2. Configuración del estándar C++ y del comportamiento del compilador
 # ----------------------------------------------------------------------------
@@ -53,7 +53,7 @@ set(CMAKE_AUTORCC ON)
 # Buscamos Qt6 y los módulos que necesitaremos inicialmente.
 # Widgets: Para la ventana principal y controles básicos.
 # Gui: Para la integración de la ventana con el sistema operativo.
-find_package(Qt6 REQUIRED COMPONENTS Widgets Gui Core LinguistTools)
+find_package(Qt6 REQUIRED COMPONENTS Widgets Gui Core LinguistTools PrintSupport)
 
 # --- OpenCV ---
 # OpenCV proporciona su propio archivo de configuración CMake.
@@ -127,6 +127,7 @@ qt_add_translations(${PROJECT_NAME}
 target_link_libraries(${PROJECT_NAME} PRIVATE
     Qt6::Widgets
     Qt6::Gui
+    Qt6::PrintSupport
 )
 
 # --- OpenCV ---

@@ -6,7 +6,7 @@ Un visor de imágenes ligero y rápido para Linux, con extracción de metadatos 
 
 ## Versión
 
-**0.4.0**
+**0.4.1**
 
 ## Características
 

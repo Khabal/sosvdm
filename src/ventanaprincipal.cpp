@@ -17,6 +17,9 @@
 #include <QGraphicsView>
 #include <QLabel>
 #include <QMessageBox>
+#include <QPrintDialog>
+#include <QPrinter>
+#include <QTextDocument>
 #include <QPainter>
 #include <QShortcut>
 #include <QSplitter>
@@ -327,20 +330,70 @@ void VentanaPrincipal::alSalir()
 
 void VentanaPrincipal::alImprimirImagen()
 {
-    // TODO(impresión): sustituir por QPrintDialog + QPrinter en la fase
-    // intermedia. Requerirá añadir Qt6::PrintSupport al CMake.
-    QMessageBox::information(
-        this, tr("Imprimir imagen"),
-        tr("Función no implementada todavía."));
+    if (m_elementoPixmap->pixmap().isNull()) {
+        return;
+    }
+
+    QPrinter impresora(QPrinter::HighResolution);
+    QPrintDialog dialogo(&impresora, this);
+    dialogo.setWindowTitle(tr("Imprimir imagen"));
+
+    if (dialogo.exec() != QDialog::Accepted) {
+        return;
+    }
+
+    QPainter pintor(&impresora);
+    const QRectF areaImpresion = pintor.viewport();
+    const QPixmap pixmap = m_elementoPixmap->pixmap();
+
+    // Escalar la imagen para que quepa en la página manteniendo la proporción.
+    QSize tamanoImpresion = pixmap.size();
+    tamanoImpresion.scale(areaImpresion.size().toSize(), Qt::KeepAspectRatio);
+
+    const QRectF rectanguloDestino(
+        QPointF(areaImpresion.center().x() - tamanoImpresion.width() / 2.0,
+                areaImpresion.center().y() - tamanoImpresion.height() / 2.0),
+        tamanoImpresion);
+
+    pintor.drawPixmap(rectanguloDestino, pixmap, pixmap.rect());
+    pintor.end();
 }
 
 void VentanaPrincipal::alImprimirMetadatos()
 {
-    // TODO(impresión): volcar formatearComoTexto() a un QTextDocument y enviarlo
-    // a QPrinter. Requerirá añadir Qt6::PrintSupport al CMake.
-    QMessageBox::information(
-        this, tr("Imprimir metadatos"),
-        tr("Función no implementada todavía."));
+    if (m_rutaArchivoActual.isEmpty()) {
+        return;
+    }
+
+    QPrinter impresora(QPrinter::HighResolution);
+    QPrintDialog dialogo(&impresora, this);
+    dialogo.setWindowTitle(tr("Imprimir metadatos"));
+
+    if (dialogo.exec() != QDialog::Accepted) {
+        return;
+    }
+
+    // Construir el texto completo: cabecera + cuerpo de metadatos.
+    QString texto = construirCabeceraImagen();
+
+    switch (m_estadoMetadatosActuales) {
+    case EstadoMetadatos::Ok:
+        texto += ExtractorMetadatos::formatearComoTexto(m_metadatosActuales);
+        break;
+    case EstadoMetadatos::SinMetadatos:
+        texto += "[Metadatos]\n"
+                 "  Sin metadatos = La imagen no contiene metadatos EXIF, IPTC ni XMP.\n";
+        break;
+    case EstadoMetadatos::FormatoNoSoportado:
+        texto += "[Metadatos]\n"
+                 "  Formato no soportado = El formato de imagen no soporta "
+                 "consulta de metadatos.\n";
+        break;
+    }
+
+    QTextDocument documento;
+    documento.setPlainText(texto);
+    documento.print(&impresora);
 }
 
 void VentanaPrincipal::alExportarMetadatos()
